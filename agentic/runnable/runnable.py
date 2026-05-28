@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, SerializeAsAny
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar, Optional
 from abc import ABC, abstractmethod
 
 I = TypeVar("I") # -> Input
@@ -9,7 +9,7 @@ M = TypeVar("M") # -> Middle
 class Runnable(BaseModel, ABC, Generic[I, O]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: str | None = None
+    name: Optional[str]
 
     @abstractmethod
     def invoke(self, data: I) -> O:

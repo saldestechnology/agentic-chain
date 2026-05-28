@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Literal
+from typing import Literal, Optional
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -8,4 +8,5 @@ class Settings(BaseSettings):
     )
     debug: bool = False
     env: Literal['production', 'development'] = 'development'
+    log_level: Optional[Literal['DEBUG', 'INFO', 'ERROR']]
     

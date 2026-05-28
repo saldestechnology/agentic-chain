@@ -18,8 +18,7 @@ def log(message: str, log_level: str = "INFO", as_json: bool = False) -> None:
             caller_name = instance.name
         elif type(instance).__name__ == "Runnable" or hasattr(instance, "invoke"):
             caller_name = getattr(instance, "name", type(instance).__name__)
-
-    if as_json or settings.env == 'production':
+    if settings.env == 'production':
         print(json.dumps({ "log_level": log_level, "called_name": caller_name, "message": message }))
-    else:
+    if settings.env != 'production' and settings.log_level == log_level:
         print(f"({log_level}) [{caller_name}] {message}")

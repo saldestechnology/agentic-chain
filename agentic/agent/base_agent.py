@@ -4,6 +4,6 @@ from agentic.llm.base_llm import BaseLLM
 
 class BaseAgent(Runnable):
     # The LLM used on this agent
-    llm: BaseLLM[str]
+    llm: BaseLLM
     # Prompt template
     prompt: PromptTemplate

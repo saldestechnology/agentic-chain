@@ -1,160 +1,102 @@
-from transformers import pipeline
-from pydantic import BaseModel, ConfigDict, SerializeAsAny
-from typing import Any, Callable
+import os
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["HF_HUB_VERBOSITY"] = "error"
 
-from pprint import pprint
+from agentic.memory.session_memory import SessionMemory
+from agentic.conversation.conversation import Conversation
+from agentic.template.prompt_template import PromptTemplate
+from agentic.parsers.parser import json_to_dict
+from agentic.llm.ollama import Ollama
+from agentic.utils.logging import log
+from agents.critique_agent import CritiqueAgent
+from agents.creative_agent import CreativeAgent
+from agents.prompt_optimizer_agent import PromptOptimizerAgent
 
-class Runnable(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+from typing_extensions import TypedDict
+import json
+
+class Haiku(TypedDict):
+    title: str
+    lines: list[str]
+
+def clean_output(text: dict | str) -> str:
+    log(f"Loading: \"{text}\" of type {type(text).__name__}")
     
-    def invoke(self, data: Any) -> Any:
-        raise NotImplementedError("I am not implemented! :o")
+    if isinstance(text, dict):
+        haiku = text
+    else:
+        try:
+            haiku: Haiku = json.loads(text)
+        except json.JSONDecodeError:
+            haiku = {"title": "Generated Poem", "lines": text.split("\n")}
 
-    def __or__(self, other: Any) -> Any:
-        if isinstance(other, Runnable):
-            return RunnableSequence(
-                first=self,
-                second=other
-            )
-        if callable(other):
-            return RunnableSequence(
-                first=self,
-                second=RunnableLambda(func=other)
-            )
-        return NotImplemented
+    log(haiku)
+
+    title = haiku.get("title", "Untitled")
+    lines_list = haiku.get("lines", [])
+
+    if isinstance(lines_list, str):
+        lines_str = lines_list
+    else:
+        lines_str = "\n".join(lines_list)
+
+    return f"\n=== THE HAIKU: {title} ===\n{lines_str}\n"
+
+system_prompt = """
+You are an AI assistant that adheres strictly to RFC 2119 — the IETF standard defining key words for expressing requirement levels in technical specifications. All of your responses MUST follow the conventions established in RFC 2119.
+
+When providing guidance, specifications, or instructions, you MUST use the following key words with their precise, defined meanings:
+
+- **MUST** / **REQUIRED** / **SHALL**: The directive is an absolute requirement. There are no exceptions.
+- **MUST NOT** / **SHALL NOT**: The directive is an absolute prohibition. There are no exceptions.
+- **SHOULD** / **RECOMMENDED**: The directive is strongly advised. You MAY deviate only in valid, well-justified circumstances after careful consideration of the implications.
+- **SHOULD NOT** / **NOT RECOMMENDED**: The directive strongly discourages a behavior. You MAY proceed only in valid, well-justified circumstances after careful consideration of the implications.
+- **MAY** / **OPTIONAL**: The directive is truly discretionary. The choice carries no implication of preference or correctness either way.
+
+You MUST NOT use these terms casually, colloquially, or interchangeably. Every usage MUST reflect the strict semantic weight defined above. If you require emphasis on a requirement, you MUST capitalize the entire key word (e.g., "MUST") to visually signal its RFC 2119 meaning.
+
+When a user's request is ambiguous regarding requirement levels, you SHOULD proactively clarify which behaviors are required, recommended, or optional. You MUST NOT conflate a "SHOULD" with a "MUST" or a "MAY" with a "SHOULD."
+
+Guidance for users: These capitalized key words carry precise, binding meaning drawn from RFC 2119. If you see "MUST," the instruction is non-negotiable. If you see "SHOULD," you are expected to follow it unless you have a strong, defensible reason not to. If you see "MAY," the choice is entirely yours with no default preference.
+"""
+
+
+author_prompt = PromptTemplate(
+    template_str="""
+    Write a haiku poem on {subject}.
+    A haiku is a short, unrhymed Japanese poetic form that traditionally captures a fleeting moment in nature. 
+    It is composed of exactly 3 lines and a 5-7-5 syllable. 
+    You MUST answer in the exact JSON format and structure as the examples.
+    You MUST NOT add or remove any fields.
+    YOU MUST NOT write anything but JSON, no commentary, no notes.
     
-    def __ror__(self, other: Any) -> Any:
-        if callable(other):
-            return RunnableSequence(
-                first=RunnableLambda(func=other),
-                second=self,
-            )
-        
-
-class RunnableLambda(Runnable):
-    func:  Callable[[Any], Any]
-    
-    def invoke(self, data: Any) -> Callable[[Any], Any]:
-        return self.func(data)
-
-class RunnableSequence(Runnable):
-    first: SerializeAsAny[Runnable]
-    second: SerializeAsAny[Runnable]
-
-    def invoke(self, data: Any) -> Any:
-        return self.second.invoke(self.first.invoke(data))
-
-# --- DTO ---
-
-class TicketInput(BaseModel):
-    customer_id: int
-    message: str
-    
-class ProcessedTicket(BaseModel):
-    customer_id: int
-    sentiment: str
-    urgency: str
-    summary: str
-    
-# --- Functionality for our pipeline ---
-
-class SentimentAnalyser(Runnable):
-    name: str = "sentiment"
-    def invoke(self, ticket: TicketInput) -> dict:
-        msg_lower = ticket.message.lower()
-
-        # Simulated NLP sentiment
-        sentiment = "negative" if "broken" in msg_lower or "angry" in msg_lower else "neutral"
-        urgency = "high" if "broken" in msg_lower or "urgent" in msg_lower else "low"
-
-        return {
-            "customer_id": ticket.customer_id,
-            "sentiment": sentiment,
-            "urgency": urgency,
-            "summary": ticket.message[:40] + "..."
-        }
-
-class TicketParser(Runnable):
-    name: str = "ticket_parser"
-    def invoke(self, raw_dict: dict) -> ProcessedTicket:
-        return ProcessedTicket(**raw_dict)
-
-def route_ticket(ticket: ProcessedTicket) -> dict:
-    destination = "engineering_team" if ticket.urgency == "high" else "general_support"
-    return {
-        "status": "routed",
-        "assigned_to": destination,
-        "ticket_details": ticket.model_dump()
-    }
-
-ticket_pipeline = SentimentAnalyser() | TicketParser() | route_ticket
-
-incoming_ticket = TicketInput(
-    customer_id=1337,
-    message="The payment portal is broken! Urgent fix is needed ASAP!"
+    Example 1: {{"title": "Green Summer", "lines": ["Green leaves catch the light",
+               "Soft breeze whispers through the trees",
+               "Summer comes to life."]}}
+    Example 2: {{"title": "Autum dance", "lines": ["Cold wind shakes the branch",
+               "Autumn leaves dance to the ground",
+               "Winter starts to wake."]}}
+    Output: """
 )
 
-final_output = ticket_pipeline.invoke(incoming_ticket)
-
-print("--- PIPELINE EXECUTED SUCCESSFULLY ---")
-pprint(final_output)
-
-print("--- INSIGHT ---")
-pprint(ticket_pipeline.model_dump(exclude_none=True))
+shared_conversation = Conversation(memory=SessionMemory())
+llm = Ollama(system_prompt=system_prompt, conversation=shared_conversation)
+critique_agent = CritiqueAgent(llm=llm)
+creative_agent = CreativeAgent(llm=llm)
+prompt_optimizer = PromptOptimizerAgent(llm=llm)
 
 
+# PromptTemplate -> LLM -> output func
+haiku_chain = (
+    author_prompt     # dict -> str
+    | prompt_optimizer
+    | creative_agent  # str -> str (LLM JSON string)
+    | json_to_dict   # str -> dict (Parsed object!)
+    | critique_agent  # dict -> str (LLM JSON string)
+    | json_to_dict   # str -> dict
+    | clean_output    # dict -> str (Final formatted printout)
+)
 
-# --- Class based ---
-
-class SmolLM:
-    def __init__(self, model_name="HuggingFaceTB/SmolLM-135M-Instruct"):
-        print("Loading {model_name} into memory (this may take a while)...")
-        self.pipe = pipeline("text-generation", model_name)
-        print("Model loaded successfully!")
-    
-    def invoke(self, prompt: str):
-        messages = [{ "role": "user", "content": prompt }]
-        output = self.pipe(messages, max_new_tokens=150)
-        return output[0]['generated_text'][-1]['content']
-
-class PromptTemplate:
-    def __init__(self, template_str: str):
-        self.template_str = template_str
-    
-    def format(self, **kwargs):
-        return self.template_str.format(**kwargs)
-        
-    
-    def __or__(self, other):
-        if isinstance(other, SmolLM):
-            return LLMChain(
-                prompt_template=self, 
-                llm=other
-            )
-        raise TypeError("It's not an instance of SmolLM!")
-
-class LLMChain:
-    def __init__(
-        self,
-        prompt_template: PromptTemplate,
-        llm: SmolLM
-    ):
-        self.prompt_template = prompt_template
-        self.llm = llm
-    
-    def invoke(self, **kwargs):
-        formatted_prompt = self.prompt_template.format(**kwargs)
-        return self.llm.invoke(formatted_prompt)
-
-# llm = SmolLM()
-
-# recipe_prompt = PromptTemplate(
-    
-#     template_str="Give me a quick 2-step recipe for a {dish} using only {ingredient_count} ingredients."
-# )
-
-# recipe_chain = recipe_prompt | llm
-
-# result = recipe_chain.invoke(dish="pie", ingredient_count="four")
-# pprint(result)
-
+result = haiku_chain.invoke({
+    "subject": "software engineering"
+})

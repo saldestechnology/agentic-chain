@@ -1,4 +1,4 @@
-from agentic.memory.base_memory import BaseMemory
+from agentic.conversation.conversation import Conversation
 from agentic.message.user_message import UserMessage
 from agentic.message.assistant_message import AssistantMessage
 from agentic.utils.logging import log
@@ -9,12 +9,12 @@ def remember(func: Callable[..., str]):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         content: str = args[0] if args else kwargs.get("prompt")
-        memory: BaseMemory | None = getattr(self, "memory", None)
-        if memory:
-            memory.add_memory(UserMessage(content=content))
+        conversation: Conversation | None = getattr(self, "conversation", None)
+        if not conversation:
+            return func(self, *args, **kwargs)
+        conversation.add_message(user=content)
         content_response = func(self, *args, **kwargs)
-        log(memory.model_dump(), log_level="DEBUG")
-        if memory:
-            memory.add_memory(AssistantMessage(content=content_response))
+        conversation.add_message(assistant=content_response)
+        log(conversation.compile(), log_level="DEBUG")
         return content_response
     return wrapper

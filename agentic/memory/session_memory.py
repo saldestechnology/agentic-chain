@@ -1,3 +1,4 @@
+from pydantic import Field
 from agentic.memory.base_memory import BaseMemory
 from agentic.message.base_message import BaseMessage
 
@@ -6,13 +7,13 @@ class SessionMemory(BaseMemory):
     A volatile in memory based chat message log
     """
     
-    memory: list[BaseMessage] = []
+    storage: list[BaseMessage] = Field(default_factory=list)
     
     def get_memory(self) -> list[BaseMessage]:
-        return self.memory
+        return self.storage
     
     def add_memory(self, message: BaseMessage):
-        self.memory.append(message)
+        self.storage.append(message)
         
     def clear(self):
-        self.memory.clear()
+        self.storage.clear()

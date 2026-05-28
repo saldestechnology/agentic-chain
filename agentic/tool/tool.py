@@ -1,4 +1,4 @@
-from tools.base_tool import BaseTool
+from agentic.tool.base_tool import BaseTool
 from pydantic import BaseModel
 from typing import Callable, Any, Type
 

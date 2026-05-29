@@ -1,5 +1,7 @@
-from agentic.message.base_message import BaseMessage
-from typing import Literal
+from agentic.message.base_message import BaseMessage, UserRole
+from pydantic import Field
+
 
 class SystemMessage(BaseMessage):
-    role: Literal["system"] = "system"
+    role: UserRole = Field(default="system")
+

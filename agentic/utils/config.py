@@ -1,12 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal, Optional
 
+LogLevel = Literal["DEBUG", "INFO", "ERROR"]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     debug: bool = False
-    env: Literal['production', 'development'] = 'development'
-    log_level: Optional[Literal['DEBUG', 'INFO', 'ERROR']]
-    
+    env: Literal["production", "development"] = "development"
+    log_level: Optional[LogLevel] = None
+

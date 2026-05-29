@@ -1,22 +1,23 @@
-from pydantic import BaseModel, ConfigDict, SerializeAsAny
-from typing import Any, Callable, Generic, TypeVar, Optional
+from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny
+from typing import Any, Callable, Generic, TypeVar
 from abc import ABC, abstractmethod
 
-I = TypeVar("I") # -> Input
-O = TypeVar("O") # -> Output
-M = TypeVar("M") # -> Middle
+Input = TypeVar("Input")
+Output = TypeVar("Output")
+Middle = TypeVar("Middle")
 
-class Runnable(BaseModel, ABC, Generic[I, O]):
+
+class Runnable(BaseModel, ABC, Generic[Input, Output]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: Optional[str]
+    name: str = Field(default="")
 
     @abstractmethod
-    def invoke(self, data: I) -> O:
-        """ Invoke the runnable class or callable """
+    def invoke(self, data: Input) -> Output:
+        """Invoke the runnable class or callable"""
         pass
 
-    def __or__(self, other: Any) -> 'RunnableSequence':
+    def __or__(self, other: Any) -> "RunnableSequence":
         if isinstance(other, Runnable):
             return RunnableSequence.model_construct(
                 first=self,
@@ -39,15 +40,17 @@ class Runnable(BaseModel, ABC, Generic[I, O]):
             )
         return NotImplemented
 
-class RunnableLambda(Runnable[I, O]):
-    func: Callable[[I], O]
 
-    def invoke(self, data: I) -> O:
+class RunnableLambda(Runnable[Input, Output]):
+    func: Callable[[Input], Output]
+
+    def invoke(self, data: Input) -> Output:
         return self.func(data)
 
-class RunnableSequence(Runnable[I, O], Generic[I, M, O]):
-    first: SerializeAsAny[Runnable[I, M]]
-    second: SerializeAsAny[Runnable[M, O]]
 
-    def invoke(self, data: I) -> O:
+class RunnableSequence(Runnable[Input, Output], Generic[Input, Middle, Output]):
+    first: SerializeAsAny[Runnable[Input, Middle]]
+    second: SerializeAsAny[Runnable[Middle, Output]]
+
+    def invoke(self, data: Input) -> Output:
         return self.second.invoke(self.first.invoke(data))

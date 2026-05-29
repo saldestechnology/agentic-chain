@@ -2,6 +2,7 @@ from agentic.agent.base_agent import BaseAgent
 from agentic.template.prompt_template import PromptTemplate
 from agentic.utils.logging import log
 
+
 class PromptOptimizerAgent(BaseAgent):
     name: str = "critique_agent"
     prompt: PromptTemplate = PromptTemplate(
@@ -14,9 +15,8 @@ class PromptOptimizerAgent(BaseAgent):
         OUTPUT: """
     )
 
-    def invoke(self, prompt: str) -> str:
-        log(f"Optimizing prompt: \"{prompt}\"")
-        prompt_string = self.prompt.invoke({
-            "prompt": prompt
-        })
+    def invoke(self, data: str) -> str:
+        log(f'Optimizing prompt: "{data}"')
+        prompt_string = self.prompt.invoke({"prompt": data})
         return self.llm.invoke(prompt_string)
+

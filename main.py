@@ -1,4 +1,7 @@
 import os
+from typing_extensions import TypedDict
+import json
+
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["HF_HUB_VERBOSITY"] = "error"
 
@@ -12,18 +15,17 @@ from agents.critique_agent import CritiqueAgent
 from agents.creative_agent import CreativeAgent
 from agents.prompt_optimizer_agent import PromptOptimizerAgent
 
-from typing_extensions import TypedDict
-import json
 
 class Haiku(TypedDict):
     title: str
     lines: list[str]
 
-def clean_output(text: dict | str) -> str:
-    log(f"Loading: \"{text}\" of type {type(text).__name__}")
-    
+
+def clean_output(text: Haiku | str) -> str:
+    log(f'Loading: "{text}" of type {type(text).__name__}')
+
     if isinstance(text, dict):
-        haiku = text
+        haiku: Haiku = text
     else:
         try:
             haiku: Haiku = json.loads(text)
@@ -42,6 +44,7 @@ def clean_output(text: dict | str) -> str:
 
     return f"\n=== THE HAIKU: {title} ===\n{lines_str}\n"
 
+
 system_prompt = """
 You are an AI assistant that adheres strictly to RFC 2119 — the IETF standard defining key words for expressing requirement levels in technical specifications. All of your responses MUST follow the conventions established in RFC 2119.
 
@@ -59,7 +62,6 @@ When a user's request is ambiguous regarding requirement levels, you SHOULD proa
 
 Guidance for users: These capitalized key words carry precise, binding meaning drawn from RFC 2119. If you see "MUST," the instruction is non-negotiable. If you see "SHOULD," you are expected to follow it unless you have a strong, defensible reason not to. If you see "MAY," the choice is entirely yours with no default preference.
 """
-
 
 author_prompt = PromptTemplate(
     template_str="""
@@ -85,18 +87,15 @@ critique_agent = CritiqueAgent(llm=llm)
 creative_agent = CreativeAgent(llm=llm)
 prompt_optimizer = PromptOptimizerAgent(llm=llm)
 
-
 # PromptTemplate -> LLM -> output func
 haiku_chain = (
-    author_prompt     # dict -> str
-    | prompt_optimizer
+    author_prompt  # dict -> str
+    | prompt_optimizer  # str - str
     | creative_agent  # str -> str (LLM JSON string)
-    | json_to_dict   # str -> dict (Parsed object!)
+    | json_to_dict  # str -> dict (Parsed object!)
     | critique_agent  # dict -> str (LLM JSON string)
-    | json_to_dict   # str -> dict
-    | clean_output    # dict -> str (Final formatted printout)
+    | json_to_dict  # str -> dict
+    | clean_output  # dict -> str (Final formatted printout)
 )
 
-result = haiku_chain.invoke({
-    "subject": "software engineering"
-})
+result = haiku_chain.invoke({"subject": "software engineering"})

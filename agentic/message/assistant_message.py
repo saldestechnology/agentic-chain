@@ -1,5 +1,6 @@
-from agentic.message.base_message import BaseMessage
-from typing import Literal
+from agentic.message.base_message import BaseMessage, UserRole
+
 
 class AssistantMessage(BaseMessage):
-    role: Literal["assistant"] = "assistant"
+    role: UserRole = "assistant"
+

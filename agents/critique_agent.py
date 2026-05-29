@@ -2,6 +2,7 @@ from agentic.agent.base_agent import BaseAgent
 from agentic.template.prompt_template import PromptTemplate
 from agentic.utils.logging import log
 
+
 class CritiqueAgent(BaseAgent):
     name: str = "critique_agent"
     prompt: PromptTemplate = PromptTemplate(
@@ -27,9 +28,12 @@ class CritiqueAgent(BaseAgent):
     )
 
     def invoke(self, data: dict) -> str:
-        log(f"Processing structured data: \"{data}\"")
-        prompt_string = self.prompt.invoke({
-            "title": data.get("title", "Untitled"),
-            "lines": "\n".join(data.get("lines", []))
-        })
+        log(f'Processing structured data: "{data}"')
+        prompt_string = self.prompt.invoke(
+            {
+                "title": data.get("title", "Untitled"),
+                "lines": "\n".join(data.get("lines", [])),
+            }
+        )
         return self.llm.invoke(prompt_string)
+

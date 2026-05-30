@@ -20,8 +20,8 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """
-        Meta-programming so developers don't have add @remember decorator
-        to invoke and adding Conversation to a BaseLLM object just works.
+        Meta-programming so developers don't have add @remember decorator to the
+        invoke method. Instead adding Conversation to a BaseLLM object just works.
         """
         super().__init_subclass__(**kwargs)
 

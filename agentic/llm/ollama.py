@@ -19,17 +19,12 @@ class Ollama(BaseLLM[Client]):
 
     def invoke(self, data: str) -> str:
         log(data)
-        if not isinstance(self._client, Client):
-            return ""
-        if not self.conversation:
+        if not (payload := self.conversation):
             payload = (
                 Conversation()
-                .update_system_prompt(str(self.system_prompt))
+                .update_system_prompt(self.system_prompt)
                 .add_message(user=data)
             )
-        else:
-            payload = self.conversation
-
         response: ChatResponse = self._client.chat(
             model=self.model_name,
             messages=payload.compile(),

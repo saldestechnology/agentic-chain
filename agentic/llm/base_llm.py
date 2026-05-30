@@ -1,5 +1,6 @@
 from typing import Any, Generic, TypeVar, Optional
 from abc import ABC
+
 from pydantic import PrivateAttr
 
 from agentic.runnable.runnable import Runnable
@@ -16,7 +17,7 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
     # Optional: chat history memory
     conversation: Optional[Conversation] = None
 
-    _client: Optional[M] = PrivateAttr(default=None)
+    _client: M = PrivateAttr()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """

@@ -1,5 +1,5 @@
 from typing import Any, Generic, TypeVar, Optional
-from abc import ABC, abstractmethod
+from abc import ABC
 from pydantic import PrivateAttr
 
 from agentic.runnable.runnable import Runnable
@@ -27,7 +27,3 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
 
         if "invoke" in cls.__dict__:
             cls.invoke = remember(cls.invoke)  # type: ignore[method-assign]
-
-    @abstractmethod
-    def invoke(self, data: str) -> str:
-        pass

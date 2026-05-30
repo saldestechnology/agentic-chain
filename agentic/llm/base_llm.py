@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Optional
+from typing import Any, Generic, TypeVar, Optional
 from abc import ABC, abstractmethod
 from pydantic import PrivateAttr
 
@@ -6,7 +6,7 @@ from agentic.runnable.runnable import Runnable
 from agentic.conversation.conversation import Conversation
 from agentic.memory.memory import remember
 
-M = TypeVar("M")  # LLM Model
+M = TypeVar("M")
 
 
 class BaseLLM(Runnable[str, str], ABC, Generic[M]):
@@ -18,11 +18,15 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
 
     _client: Optional[M] = PrivateAttr(default=None)
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """
+        Meta-programming so developers don't have add @remember decorator
+        to invoke and adding Conversation to a BaseLLM object just works.
+        """
         super().__init_subclass__(**kwargs)
 
         if "invoke" in cls.__dict__:
-            cls.invoke = remember(cls.invoke)
+            cls.invoke = remember(cls.invoke)  # type: ignore[method-assign]
 
     @abstractmethod
     def invoke(self, data: str) -> str:

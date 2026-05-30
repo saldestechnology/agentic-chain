@@ -1,3 +1,4 @@
+from typing import Any
 from ollama import ChatResponse, Client
 
 from agentic.llm.base_llm import BaseLLM
@@ -9,13 +10,15 @@ class Ollama(BaseLLM[Client]):
     name: str = "ollama"
     model_name: str = "gemma4:31b-cloud"
 
-    def model_post_init(self, __context):
+    def model_post_init(self, __context: Any) -> None:
+        log(f"Loading {self.model_name} into memory (this may take a while)...")
         self._client = Client()
         if self.conversation:
-            self.conversation.update_system_prompt(str(self.system_prompt))
+            self.conversation.update_system_prompt(self.system_prompt)
+        log("Model loaded successfully.")
 
     def invoke(self, data: str) -> str:
-        log(f"Called with {data}")
+        log(data)
         if not isinstance(self._client, Client):
             return ""
         if not self.conversation:

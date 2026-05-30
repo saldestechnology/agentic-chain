@@ -22,13 +22,13 @@ class Haiku(TypedDict):
 
 
 def clean_output(text: Haiku | str) -> str:
-    log(f'Loading: "{text}" of type {type(text).__name__}')
+    log({"content": text, "type": type(text).__name__})
 
     if isinstance(text, dict):
         haiku: Haiku = text
     else:
         try:
-            haiku: Haiku = json.loads(text)
+            haiku = json.loads(text)
         except json.JSONDecodeError:
             haiku = {"title": "Generated Poem", "lines": text.split("\n")}
 

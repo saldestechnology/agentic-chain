@@ -8,7 +8,7 @@ import inspect
 
 
 class SafeDict(dict):
-    def __missing__(self, key):
+    def __missing__(self, key: str) -> str:
         return f"{{{key}}}"
 
 
@@ -36,5 +36,5 @@ class PromptTemplate(Runnable[dict | str, str]):
             log(f"Expected a dictionary for keyword unpacking, got {type(data)}")
             return self.template_str
 
-    def format(self, **kwargs):
+    def format(self, **kwargs: dict) -> str:
         return self.template_str.format(**kwargs)

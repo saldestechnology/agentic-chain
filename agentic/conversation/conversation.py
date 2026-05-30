@@ -29,7 +29,7 @@ class Conversation(BaseModel):
     @overload
     def add_message(self, *, assistant: str) -> "Conversation": ...
 
-    def add_message(self, **message) -> "Conversation":
+    def add_message(self, **message: str) -> "Conversation":
         """Append a message to the conversation ledger"""
         match message:
             case {"user": str() as content}:
@@ -59,8 +59,8 @@ class Conversation(BaseModel):
         current_mem = self.memory.get_memory()
         self.memory.storage = current_mem[-keep:]
 
-    def summarize_history(self):
-        return NotImplemented
+    def summarize_history(self) -> None:
+        raise NotImplementedError("summarize_history is not implemented!")
 
     def compile(self) -> list[dict[str, str]]:
         """Seralize the entire conversation ledger into raw API primitives"""

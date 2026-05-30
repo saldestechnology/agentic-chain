@@ -9,4 +9,4 @@ class BaseMessage(BaseModel):
     content: str
 
     def dump(self) -> dict[str, str]:
-        return {"role": self.role, "conten": self.content}
+        return {"role": self.role, "content": self.content}

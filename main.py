@@ -2,6 +2,8 @@ import os
 from typing_extensions import TypedDict
 import json
 
+from agents.lambda_agent import LambdaAgent
+
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["HF_HUB_VERBOSITY"] = "error"
 
@@ -63,7 +65,7 @@ When a user's request is ambiguous regarding requirement levels, you SHOULD proa
 Guidance for users: These capitalized key words carry precise, binding meaning drawn from RFC 2119. If you see "MUST," the instruction is non-negotiable. If you see "SHOULD," you are expected to follow it unless you have a strong, defensible reason not to. If you see "MAY," the choice is entirely yours with no default preference.
 """
 
-author_prompt = PromptTemplate(
+start_prompt = PromptTemplate(
     template_str="""
     Write a haiku poem on {subject}.
     A haiku is a short, unrhymed Japanese poetic form that traditionally captures a fleeting moment in nature. 
@@ -81,15 +83,21 @@ author_prompt = PromptTemplate(
     Output: """
 )
 
+
+def callback(cls: LambdaAgent, data: str) -> str:
+    return cls.invoke(cls.prompt.invoke(data))
+
+
 shared_conversation = Conversation(memory=SessionMemory())
 llm = Ollama(system_prompt=system_prompt, conversation=shared_conversation)
+lambda_agent = LambdaAgent(llm=llm, prompt=start_prompt, func=callback)
 critique_agent = CritiqueAgent(llm=llm)
 creative_agent = CreativeAgent(llm=llm)
 prompt_optimizer = PromptOptimizerAgent(llm=llm)
 
 # PromptTemplate -> LLM -> output func
 haiku_chain = (
-    author_prompt  # dict -> str
+    start_prompt  # dict -> str
     | prompt_optimizer  # str - str
     | creative_agent  # str -> str (LLM JSON string)
     | json_to_dict  # str -> dict (Parsed object!)
@@ -99,3 +107,4 @@ haiku_chain = (
 )
 
 result = haiku_chain.invoke({"subject": "software engineering"})
+__import__("pprint").pprint(shared_conversation.compile())

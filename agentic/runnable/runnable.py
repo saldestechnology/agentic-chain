@@ -31,7 +31,7 @@ class Runnable(BaseModel, ABC, Generic[Input, Output]):
             )
         return NotImplemented
 
-    def __ror__(self, other: Any) -> Any:
+    def __ror__(self, other: Any) -> "RunnableSequence":
         if callable(other):
             return RunnableSequence.model_construct(
                 first=RunnableLambda.model_construct(func=other),

@@ -21,7 +21,6 @@ class SmolLM(BaseLLM[TextGenerationPipeline]):
 
     def invoke(self, data: str) -> str:
         log(data)
-        if not isinstance(self._client, TextGenerationPipeline):
-            return ""
-        output = self._client([{"role": "user", "content": data}])
-        return str(output[0]["generated_text"][-1]["content"]).strip()
+        payload = self.get_conversation(data)
+        response = self._client(payload.compile())
+        return str(response[0]["generated_text"][-1]["content"]).strip()

@@ -2,7 +2,6 @@ from typing import Any
 from ollama import ChatResponse, Client
 
 from agentic.llm.base_llm import BaseLLM
-from agentic.conversation.conversation import Conversation
 from agentic.utils.logging import log
 
 
@@ -19,12 +18,7 @@ class Ollama(BaseLLM[Client]):
 
     def invoke(self, data: str) -> str:
         log(data)
-        if not (payload := self.conversation):
-            payload = (
-                Conversation()
-                .update_system_prompt(self.system_prompt)
-                .add_message(user=data)
-            )
+        payload = self.get_conversation(data)
         response: ChatResponse = self._client.chat(
             model=self.model_name,
             messages=payload.compile(),

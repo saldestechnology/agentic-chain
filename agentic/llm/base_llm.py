@@ -28,3 +28,13 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
 
         if "invoke" in cls.__dict__:
             cls.invoke = remember(cls.invoke)  # type: ignore[method-assign]
+
+    def get_conversation(self, data: str) -> Conversation:
+        """If conversation is initialised it gets returned otherwise one shot"""
+        if not (payload := self.conversation):
+            payload = (
+                Conversation()
+                .update_system_prompt(self.system_prompt)
+                .add_message(user=data)
+            )
+        return payload

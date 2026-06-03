@@ -17,7 +17,7 @@ class Runnable(BaseModel, ABC, Generic[Input, Output]):
         """Invoke the runnable class or callable"""
         pass
 
-    def __or__(self, other: Any) -> "RunnableSequence":
+    def __or__(self, other: Any) -> "RunnableSequence[Any, Any, Any]":
         if isinstance(other, Runnable):
             return RunnableSequence.model_construct(
                 first=self,
@@ -31,7 +31,7 @@ class Runnable(BaseModel, ABC, Generic[Input, Output]):
             )
         return NotImplemented
 
-    def __ror__(self, other: Any) -> "RunnableSequence":
+    def __ror__(self, other: Any) -> "RunnableSequence[Any, Any, Any]":
         if callable(other):
             return RunnableSequence.model_construct(
                 first=RunnableLambda.model_construct(func=other),

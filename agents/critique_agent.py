@@ -1,3 +1,5 @@
+from typing import Any
+
 from agentic.agent.base_agent import BaseAgent
 from agentic.template.prompt_template import PromptTemplate
 from agentic.utils.logging import log
@@ -27,7 +29,7 @@ class CritiqueAgent(BaseAgent):
         Output: """
     )
 
-    def invoke(self, data: dict) -> str:
+    def invoke(self, data: dict[str, Any]) -> str:
         log(f'Processing structured data: "{data}"')
         prompt_string = self.prompt.invoke(
             {

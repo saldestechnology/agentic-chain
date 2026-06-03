@@ -1,19 +1,23 @@
+from abc import ABC, abstractmethod
 from agentic.runnable.runnable import Runnable
-from typing import Type, Callable, Any
+from typing import Type, Any
 from pydantic import BaseModel, Field
 
 
-class BaseTool(Runnable):
+class BaseTool(Runnable[dict[str, Any], str], ABC):
     name: str = Field(default="")
     description: str
     args_schema: Type[BaseModel]
-    func: Callable[..., Any]
 
-    def invoke(self, data: dict) -> Any:
+    @abstractmethod
+    def func(self, *args: Any, **kwargs: Any) -> str:
+        """Execute the tool with validated arguments"""
+
+    def invoke(self, data: dict[str, Any]) -> str:
         validate_args = self.args_schema(**data)
         return self.func(**validate_args.model_dump())
 
-    def tool_spec(self) -> dict:
+    def tool_spec(self) -> dict[str, Any]:
         return {
             "type": "function",
             "function": {
@@ -22,4 +26,3 @@ class BaseTool(Runnable):
                 "parameters": self.args_schema.model_json_schema(),
             },
         }
-

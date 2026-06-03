@@ -12,6 +12,8 @@ from agentic.conversation.conversation import Conversation
 from agentic.template.prompt_template import PromptTemplate
 from agentic.parsers.parser import json_to_dict
 from agentic.llm.ollama import Ollama
+from agentic.agent.tool_agent import ToolAgent
+from agentic.tool.web_browser import WebBrowser
 from agentic.utils.logging import log
 from agents.critique_agent import CritiqueAgent
 from agents.creative_agent import CreativeAgent
@@ -65,46 +67,64 @@ When a user's request is ambiguous regarding requirement levels, you SHOULD proa
 Guidance for users: These capitalized key words carry precise, binding meaning drawn from RFC 2119. If you see "MUST," the instruction is non-negotiable. If you see "SHOULD," you are expected to follow it unless you have a strong, defensible reason not to. If you see "MAY," the choice is entirely yours with no default preference.
 """
 
-start_prompt = PromptTemplate(
-    template_str="""
-    Write a haiku poem on {subject}.
-    A haiku is a short, unrhymed Japanese poetic form that traditionally captures a fleeting moment in nature. 
-    It is composed of exactly 3 lines and a 5-7-5 syllable. 
-    You MUST answer in the exact JSON format and structure as the examples.
-    You MUST NOT add or remove any fields.
-    YOU MUST NOT write anything but JSON, no commentary, no notes.
-    
-    Example 1: {{"title": "Green Summer", "lines": ["Green leaves catch the light",
-               "Soft breeze whispers through the trees",
-               "Summer comes to life."]}}
-    Example 2: {{"title": "Autum dance", "lines": ["Cold wind shakes the branch",
-               "Autumn leaves dance to the ground",
-               "Winter starts to wake."]}}
-    Output: """
-)
+# start_prompt = PromptTemplate(
+#     template_str="""
+#     Write a haiku poem on {subject}.
+#     A haiku is a short, unrhymed Japanese poetic form that traditionally captures a fleeting moment in nature.
+#     It is composed of exactly 3 lines and a 5-7-5 syllable.
+#     You MUST answer in the exact JSON format and structure as the examples.
+#     You MUST NOT add or remove any fields.
+#     YOU MUST NOT write anything but JSON, no commentary, no notes.
+
+#     Example 1: {{"title": "Green Summer", "lines": ["Green leaves catch the light",
+#                "Soft breeze whispers through the trees",
+#                "Summer comes to life."]}}
+#     Example 2: {{"title": "Autum dance", "lines": ["Cold wind shakes the branch",
+#                "Autumn leaves dance to the ground",
+#                "Winter starts to wake."]}}
+#     Output: """
+# )
+
+
+def output(text: str) -> str:
+    return f"{text}"
 
 
 def callback(cls: LambdaAgent, data: str) -> str:
-    return cls.invoke(cls.prompt.invoke(data))
+    formatted = cls.prompt.invoke(data)
+    return cls.llm.invoke(formatted)
 
+
+start_prompt = PromptTemplate(
+    template_str="""
+        Use web browser to fetch information from wikipedia https://en.wikipedia.org/wiki/<QUERY>.
+        I want you to look up {animal}
+    """
+)
 
 shared_conversation = Conversation(memory=SessionMemory())
 llm = Ollama(system_prompt=system_prompt, conversation=shared_conversation)
 lambda_agent = LambdaAgent(llm=llm, prompt=start_prompt, func=callback)
-critique_agent = CritiqueAgent(llm=llm)
-creative_agent = CreativeAgent(llm=llm)
-prompt_optimizer = PromptOptimizerAgent(llm=llm)
+tool_agent = ToolAgent(llm=llm, tools=[WebBrowser()])
 
-# PromptTemplate -> LLM -> output func
-haiku_chain = (
-    start_prompt  # dict -> str
-    | prompt_optimizer  # str - str
-    | creative_agent  # str -> str (LLM JSON string)
-    | json_to_dict  # str -> dict (Parsed object!)
-    | critique_agent  # dict -> str (LLM JSON string)
-    | json_to_dict  # str -> dict
-    | clean_output  # dict -> str (Final formatted printout)
-)
+tool_chain = start_prompt | tool_agent
 
-result = haiku_chain.invoke({"subject": "software engineering"})
+result = tool_chain.invoke({"animal": "penguin"})
 __import__("pprint").pprint(shared_conversation.compile())
+
+critique_agent = CritiqueAgent(llm=llm)
+# creative_agent = CreativeAgent(llm=llm)
+# prompt_optimizer = PromptOptimizerAgent(llm=llm)
+
+# haiku_chain = (
+#     start_prompt
+#     | prompt_optimizer
+#     | creative_agent
+#     | json_to_dict
+#     | critique_agent
+#     | json_to_dict
+#     | clean_output
+# )
+
+# result = haiku_chain.invoke({"subject": "software engineering"})
+# __import__("pprint").pprint(shared_conversation.compile())

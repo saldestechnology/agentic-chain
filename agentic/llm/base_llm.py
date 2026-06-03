@@ -27,7 +27,11 @@ class BaseLLM(Runnable[str, str], ABC, Generic[M]):
         super().__init_subclass__(**kwargs)
 
         if "invoke" in cls.__dict__:
-            cls.invoke = remember(cls.invoke)  # type: ignore[method-assign]
+            # NOTE: This dynamic method reassignment is a short-term pattern.
+            # We should look into a more sustainable solution in the future,
+            # either by refactoring BaseLLM to use a concrete invoke() + abstract _invoke(),
+            # or by finding a decorator pattern that mypy can verify statically.
+            cls.invoke = remember(cls.invoke)  # type: ignore[assignment, method-assign]
 
     def get_conversation(self, data: str) -> Conversation:
         """If conversation is initialised it gets returned otherwise one shot"""

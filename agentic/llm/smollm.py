@@ -10,7 +10,7 @@ class SmolLM(BaseLLM[TextGenerationPipeline]):
 
     def model_post_init(self, __context: Any) -> None:
         log(f"Loading {self.model_name} into memory (this may take a while)...")
-        logging.set_verbosity_error()  # Only show errors from transformers
+        logging.set_verbosity_error()  # type: ignore[no-untyped-call]  # Only show errors from transformers
         self._client = pipeline(
             "text-generation",
             model=self.model_name,

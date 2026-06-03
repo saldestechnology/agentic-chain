@@ -1,5 +1,5 @@
 from pydantic import BeforeValidator
-from typing import Annotated
+from typing import Annotated, Any
 from agentic.runnable.runnable import Runnable
 from json.decoder import JSONDecodeError
 from agentic.utils.logging import log
@@ -7,16 +7,16 @@ import json
 import inspect
 
 
-class SafeDict(dict):
+class SafeDict(dict[str, Any]):
     def __missing__(self, key: str) -> str:
         return f"{{{key}}}"
 
 
-class PromptTemplate(Runnable[dict | str, str]):
+class PromptTemplate(Runnable[dict[str, Any] | str, str]):
     name: str = "prompt_template"
     template_str: Annotated[str, BeforeValidator(inspect.cleandoc)]
 
-    def invoke(self, data: dict | str) -> str:
+    def invoke(self, data: dict[str, Any] | str) -> str:
         """Takes either a str or a dict and returns a formatted string"""
         log(data, log_level="DEBUG")
         if isinstance(data, str):
@@ -36,5 +36,5 @@ class PromptTemplate(Runnable[dict | str, str]):
             log(f"Expected a dictionary for keyword unpacking, got {type(data)}")
             return self.template_str
 
-    def format(self, **kwargs: dict) -> str:
+    def format(self, **kwargs: Any) -> str:
         return self.template_str.format(**kwargs)

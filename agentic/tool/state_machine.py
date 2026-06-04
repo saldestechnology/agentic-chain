@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import TypeVar, Generic, Dict, Tuple, List, Callable, Union, cast, Any
+from typing import TypeVar, Generic, Dict, Tuple, List, Callable, Union, cast
 import json
 
 from pydantic import BaseModel
@@ -104,9 +104,11 @@ def extract_final_answer(ctx: AgentCtx) -> None:
 )
 def execute_tool_logic(ctx: AgentCtx) -> None:
     try:
-        # Mini inline JSON cleaner step if the LLM wraps the output in code block
+        # Remove markdown code fences if present
         cleaned = ctx.last_response.replace("```json", "").replace("```", "").strip()
-        parsed_call = json.loads(cleaned)
+        # Extract only the first JSON object — ignore trailing conversational text
+        decoder = json.JSONDecoder()
+        parsed_call, _ = decoder.raw_decode(cleaned)
         tool_name = parsed_call.get("tool_name")
         args = parsed_call.get("arguments", {})
 

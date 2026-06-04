@@ -27,6 +27,7 @@ class AgentCtx(BaseModel):
     llm: BaseLLM  # type: ignore[type-arg]
     tools: List[BaseTool]
     current_input: str
+    original_input: str = ""
     last_response: str = ""
     iterations: int = 0
     max_iterations: int = 5
@@ -120,7 +121,11 @@ def execute_tool_logic(ctx: AgentCtx) -> None:
 
     if ctx.llm.conversation:
         ctx.llm.conversation.add_message(user=observation)
-        ctx.current_input = f"A tool execution completed. Here is the observation data:\n{observation}\nAnalyze it and answer."
+        ctx.current_input = (
+            f"{ctx.original_input}\n\n"
+            f"A tool execution completed. Here is the observation data:\n{observation}\n"
+            "Analyze it and answer."
+        )
 
 
 @agent_state.transition(

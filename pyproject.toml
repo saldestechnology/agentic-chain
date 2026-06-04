@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.12",
+    "ddgs>=9.0",
     "httpx>=0.28.1",
     "mypy>=2.1.0",
     "ollama>=0.6.2",
@@ -23,7 +24,7 @@ warn_unused_ignores = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 [[tool.mypy.overrides]]
-module = ["ollama.*", "transformers.*"]
+module = ["ddgs.*", "ollama.*", "transformers.*"]
 ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["agentic.*"]

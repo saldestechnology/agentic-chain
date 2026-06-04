@@ -24,7 +24,7 @@ class ToolAgent(BaseAgent, BaseModel):
             You are an analytical assistant with tools:\n{specs}\n\n
             To trigger a tool choice, output a structural JSON using this schema format:\n
             {{"type": "tool_call", "tool_name": "NAME", "arguments": {{...}}}}\n
-            If answering directly, output standard conversational text lines.
+            You MUST use a tool to answer questions. Do not output conversational text.
             """
         ).invoke({"specs": json.dumps(specs, indent=2)})
 
@@ -39,6 +39,7 @@ class ToolAgent(BaseAgent, BaseModel):
             llm=self.llm,
             tools=self.tools,
             current_input=data,
+            original_input=data,
             max_iterations=self.max_iterations,
         )
 
